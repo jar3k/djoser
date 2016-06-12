@@ -56,9 +56,16 @@ class RegistrationView(generics.CreateAPIView):
         signals.user_registered.send(sender=self.__class__, user=instance, request=self.request)
         if settings.get('SEND_ACTIVATION_EMAIL'):
             self.send_activation_email(instance)
+        elif settings.get('SEND_CONFIRMATION_EMAIL'):
+            self.send_confirmation_email(instance)
 
     def send_activation_email(self, user):
         email_factory = utils.UserActivationEmailFactory.from_request(self.request, user=user)
+        email = email_factory.create()
+        email.send()
+
+    def send_confirmation_email(self, user):
+        email_factory = utils.UserConfirmationEmailFactory.from_request(self.request, user=user)
         email = email_factory.create()
         email.send()
 
@@ -182,8 +189,8 @@ class ActivationView(utils.ActionViewMixin, generics.GenericAPIView):
         serializer.user.save()
         signals.user_activated.send(
             sender=self.__class__, user=serializer.user, request=self.request)
-        if settings.get('SEND_CONFIRMATION_EMAIL'):
-            email_factory = utils.UserConfirmationEmailFactory.from_request(
+        if settings.get('SEND_AFTER_ACTIVATION_EMAIL'):
+            email_factory = utils.UserAfterActivationEmailFactory.from_request(
                 self.request, user=serializer.user)
             email = email_factory.create()
             email.send()

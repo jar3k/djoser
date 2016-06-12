@@ -88,6 +88,25 @@ class RegistrationViewTest(restframework.APIViewTestCase,
         user = get_user_model().objects.get(username='john')
         self.assertFalse(user.is_active)
 
+    @override_settings(DJOSER=dict(settings.DJOSER, **{'SEND_CONFIRMATION_EMAIL': True}))
+    def test_post_should_create_user_with_login_and_send_confirmation_email(self):
+        data = {
+            'username': 'john',
+            'email': 'john@beatles.com',
+            'password': 'secret',
+        }
+        request = self.factory.post(data=data)
+
+        response = self.view(request)
+
+        self.assert_status_equal(response, status.HTTP_201_CREATED)
+        self.assert_instance_exists(get_user_model(), username=data['username'])
+        self.assert_emails_in_mailbox(1)
+        self.assert_email_exists(to=[data['email']])
+
+        user = get_user_model().objects.get(username='john')
+        self.assertTrue(user.is_active)
+
     def test_post_should_not_create_new_user_if_username_exists(self):
         create_user(username='john')
         data = {
@@ -472,10 +491,8 @@ class ActivationViewTest(restframework.APIViewTestCase,
         self.assert_status_equal(response, status.HTTP_403_FORBIDDEN)
         self.assertFalse(self.signal_sent)
 
-    @override_settings(
-        DJOSER=dict(settings.DJOSER, **{'SEND_CONFIRMATION_EMAIL': True})
-    )
-    def test_post_should_sent_confirmation_email(self):
+    @override_settings(DJOSER=dict(settings.DJOSER, **{'SEND_AFTER_ACTIVATION_EMAIL': True}))
+    def test_post_should_sent_email_after_activation(self):
         user = create_user()
         user.is_active = False
         user.save()

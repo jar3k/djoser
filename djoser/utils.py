@@ -121,3 +121,9 @@ class UserConfirmationEmailFactory(UserEmailFactoryBase):
 
     subject_template_name = 'confirmation_email_subject.txt'
     plain_body_template_name = 'confirmation_email_body.txt'
+
+
+class UserAfterActivationEmailFactory(UserEmailFactoryBase):
+
+    subject_template_name = 'after_activation_email_subject.txt'
+    plain_body_template_name = 'after_activation_email_body.txt'
