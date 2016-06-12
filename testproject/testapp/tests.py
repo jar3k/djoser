@@ -421,6 +421,7 @@ class PasswordResetConfirmViewTest(restframework.APIViewTestCase,
 
 
 class ActivationViewTest(restframework.APIViewTestCase,
+                         assertions.EmailAssertionsMixin,
                          assertions.StatusCodeAssertionsMixin):
     view_class = djoser.views.ActivationView
 
@@ -470,6 +471,26 @@ class ActivationViewTest(restframework.APIViewTestCase,
 
         self.assert_status_equal(response, status.HTTP_403_FORBIDDEN)
         self.assertFalse(self.signal_sent)
+
+    @override_settings(
+        DJOSER=dict(settings.DJOSER, **{'SEND_CONFIRMATION_EMAIL': True})
+    )
+    def test_post_should_sent_confirmation_email(self):
+        user = create_user()
+        user.is_active = False
+        user.save()
+        djoser.signals.user_activated.connect(self.signal_receiver)
+        data = {
+            'uid': djoser.utils.encode_uid(user.pk),
+            'token': default_token_generator.make_token(user),
+        }
+        request = self.factory.post(data=data)
+
+        response = self.view(request)
+
+        self.assert_status_equal(response, status.HTTP_200_OK)
+        self.assert_emails_in_mailbox(1)
+        self.assert_email_exists(to=[user.email])
 
 
 class SetPasswordViewTest(restframework.APIViewTestCase,

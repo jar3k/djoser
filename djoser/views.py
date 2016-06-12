@@ -182,6 +182,11 @@ class ActivationView(utils.ActionViewMixin, generics.GenericAPIView):
         serializer.user.save()
         signals.user_activated.send(
             sender=self.__class__, user=serializer.user, request=self.request)
+        if settings.get('SEND_CONFIRMATION_EMAIL'):
+            email_factory = utils.UserConfirmationEmailFactory.from_request(
+                self.request, user=serializer.user)
+            email = email_factory.create()
+            email.send()
         return Response(status=status.HTTP_200_OK)
 
 
